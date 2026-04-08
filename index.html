@@ -3,107 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rastreo de Pedidos CIMSA</title>
+    <title>Rastreo y Gestión CIMSA</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin: auto; }
+        .nav-tabs { display: flex; justify-content: center; margin-bottom: 20px; gap: 10px; }
+        .tab-btn { padding: 10px 20px; cursor: pointer; border: none; border-radius: 8px; background: #ddd; font-weight: bold; }
+        .tab-btn.active { background: #1890ff; color: white; }
+        
+        .section { display: none; }
+        .section.active { display: block; }
+
         h2 { color: #001529; text-align: center; margin-bottom: 25px; font-size: 1.4rem; }
-        .search-group { display: flex; gap: 10px; margin-bottom: 25px; }
-        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; }
-        input:focus { border-color: #1890ff; }
-        button { padding: 12px 20px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #40a9ff; }
+        .search-group, .login-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
+        input { padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; }
+        button { padding: 12px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         
-        #resultado { display: none; margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; }
-        .info-box { margin-bottom: 15px; display: flex; flex-direction: column; }
+        #resultado { border-top: 2px solid #eee; padding-top: 20px; }
+        .info-box { margin-bottom: 15px; }
         .label { font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: bold; }
-        .valor { font-size: 1.05rem; color: #333; margin-top: 2px; line-height: 1.4; }
+        .valor { font-size: 1.05rem; color: #333; margin-top: 2px; }
+        .observacion-box { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 6px; }
         
-        .observacion-box { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 6px; margin-top: 10px; }
-        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; background: #52c41a; color: white; margin-bottom: 15px; font-size: 0.8rem; }
-        #error-msg { color: #ff4d4f; text-align: center; display: none; margin-top: 20px; font-weight: bold; }
+        /* Dashboard Styles */
+        .stats-card { text-align: center; padding: 20px; background: #f9f9f9; border-radius: 10px; margin-top: 10px; }
+        .percent { font-size: 2.5rem; font-weight: bold; color: #52c41a; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>🔎 Rastreador de Pedidos</h2>
-    <div class="search-group">
-        <input type="text" id="inputPedido" placeholder="Ingrese el número de pedido...">
-        <button onclick="buscar()">Buscar</button>
+<div class="nav-tabs">
+    <button class="tab-btn active" onclick="showSection('rastreo')">🔎 Rastreo</button>
+    <button class="tab-btn" onclick="showSection('admin')">📊 Dashboard C&C</button>
+</div>
+
+<div id="rastreo" class="section active">
+    <div class="container">
+        <h2>Rastreador de Pedidos</h2>
+        <div class="search-group">
+            <input type="text" id="inputPedido" placeholder="Ingrese número de pedido...">
+            <button onclick="buscar()">Buscar Pedido</button>
+        </div>
+        <div id="resultado" style="display:none;">
+            <div class="info-box"><div class="label">No. de Embarque:</div><div id="resEmbarque" class="valor"></div></div>
+            <div class="info-box"><div class="label">Factura:</div><div id="resFactura" class="valor"></div></div>
+            <div class="info-box"><div class="label">Cliente:</div><div id="resCliente" class="valor"></div></div>
+            <div class="info-box"><div class="label">Dirección:</div><div id="resDireccion" class="valor"></div></div>
+            <div id="boxObs" class="observacion-box"><div class="label">Observaciones:</div><div id="resObs" class="valor"></div></div>
+        </div>
+        <div id="error-msg" style="color:red; display:none; text-align:center; margin-top:10px;">❌ Pedido no encontrado.</div>
+    </div>
+</div>
+
+<div id="admin" class="section">
+    <div class="container" id="login-container">
+        <h2>Acceso Administrativo</h2>
+        <div class="login-group">
+            <input type="text" id="usuario" placeholder="Usuario">
+            <input type="password" id="pass" placeholder="Contraseña">
+            <button onclick="login()">Ingresar al Dashboard</button>
+        </div>
+        <div id="login-err" style="color:red; display:none; text-align:center;">Usuario o contraseña incorrectos.</div>
     </div>
 
-    <div id="resultado">
-        <div class="status-badge">📦 INFORMACIÓN DE DESPACHO</div>
-
-        <div class="info-box">
-            <div class="label">No. de Embarque:</div>
-            <div id="resEmbarque" class="valor"></div>
+    <div class="container" id="dashboard-container" style="display:none;">
+        <h2>Porcentajes de Entrega C&C</h2>
+        <div class="stats-card">
+            <div class="label">Efectividad de Entrega</div>
+            <div id="porcentajeCnc" class="percent">0%</div>
+            <canvas id="chartCnc" width="200" height="200"></canvas>
+            <div style="text-align: left; margin-top: 15px;">
+                <p>✅ <strong>Entregados:</strong> <span id="countEntregados">0</span></p>
+                <p>⏳ <strong>Pendientes:</strong> <span id="countPendientes">0</span></p>
+                <p>📦 <strong>Total Pedidos:</strong> <span id="countTotal">0</span></p>
+            </div>
         </div>
-
-        <div class="info-box">
-            <div class="label">Factura Relacionada:</div>
-            <div id="resFactura" class="valor"></div>
-        </div>
-
-        <div class="info-box">
-            <div class="label">Cliente:</div>
-            <div id="resCliente" class="valor"></div>
-        </div>
-
-        <div class="info-box">
-            <div class="label">Dirección de Entrega:</div>
-            <div id="resDireccion" class="valor"></div>
-        </div>
-
-        <div id="boxObservacion" class="observacion-box">
-            <div class="label" style="color: #856404;">Observaciones de Entrega:</div>
-            <div id="resObs" class="valor"></div>
-        </div>
+        <button onclick="logout()" style="width:100%; margin-top:15px; background:#ff4d4f;">Cerrar Sesión</button>
     </div>
-
-    <div id="error-msg">❌ No se encontró el pedido. Por favor, verifique el número e intente de nuevo.</div>
 </div>
 
 <script>
     const public_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEHgrrm_5yYHs_Pnf_Nd4EOkMM6AvxWbiMyhnL8391HXgTz7rK8aYWUEkiLqVZkQzzJtOpKld1J0hG/pub?output=csv' + '&cache=' + new Date().getTime();
-    
     let baseDatos = [];
+    let myChart = null;
 
     Papa.parse(public_url, {
         download: true,
         header: false,
         complete: function(results) {
-            baseDatos = results.data;
+            baseDatos = results.data.filter(fila => fila[5]); // Filtra filas con Pedido (Col F)
         }
     });
 
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
     function buscar() {
         const busqueda = document.getElementById('inputPedido').value.trim();
-        const resDiv = document.getElementById('resultado');
-        const errDiv = document.getElementById('error-msg');
-
-        if (busqueda === "") return;
-
-        const encontrado = baseDatos.find(fila => fila[5] && fila[5].toString().trim() === busqueda);
-
+        const encontrado = baseDatos.find(fila => fila[5] == busqueda);
         if (encontrado) {
-            errDiv.style.display = 'none';
-            resDiv.style.display = 'block';
-
-            document.getElementById('resEmbarque').innerText = encontrado[0] || '---';
-            document.getElementById('resFactura').innerText = encontrado[8] || '---';
-            document.getElementById('resCliente').innerText = (encontrado[11] || '') + " - " + (encontrado[12] || '');
-            document.getElementById('resDireccion').innerText = encontrado[13] || '---';
-            
-            const obs = encontrado[24] || 'Sin observaciones adicionales';
-            document.getElementById('resObs').innerText = obs;
-            
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('resultado').style.display = 'block';
+            document.getElementById('resEmbarque').innerText = encontrado[0];
+            document.getElementById('resFactura').innerText = encontrado[8];
+            document.getElementById('resCliente').innerText = encontrado[11] + " - " + encontrado[12];
+            document.getElementById('resDireccion').innerText = encontrado[13];
+            document.getElementById('resObs').innerText = encontrado[24] || 'Sin observación';
         } else {
-            resDiv.style.display = 'none';
-            errDiv.style.display = 'block';
+            document.getElementById('resultado').style.display = 'none';
+            document.getElementById('error-msg').style.display = 'block';
         }
+    }
+
+    function login() {
+        const u = document.getElementById('usuario').value;
+        const p = document.getElementById('pass').value;
+        if(u === "admin" && p === "cimsa2026") {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('dashboard-container').style.display = 'block';
+            calcularStats();
+        } else {
+            document.getElementById('login-err').style.display = 'block';
+        }
+    }
+
+    function logout() {
+        document.getElementById('login-container').style.display = 'block';
+        document.getElementById('dashboard-container').style.display = 'none';
+        document.getElementById('usuario').value = "";
+        document.getElementById('pass').value = "";
+    }
+
+    function calcularStats() {
+        // Ignorar encabezados si los hay (asumimos que la fila 0 es encabezado)
+        const filasData = baseDatos.slice(1);
+        let entregados = 0;
+        let pendientes = 0;
+
+        filasData.forEach(fila => {
+            if (fila[24] && fila[24].trim() !== "") {
+                entregados++;
+            } else {
+                pendientes++;
+            }
+        });
+
+        const total = entregados + pendientes;
+        const porc = total > 0 ? ((entregados / total) * 100).toFixed(1) : 0;
+
+        document.getElementById('porcentajeCnc').innerText = porc + "%";
+        document.getElementById('countEntregados').innerText = entregados;
+        document.getElementById('countPendientes').innerText = pendientes;
+        document.getElementById('countTotal').innerText = total;
+
+        // Gráfico
+        const ctx = document.getElementById('chartCnc').getContext('2d');
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Entregados', 'Pendientes'],
+                datasets: [{
+                    data: [entregados, pendientes],
+                    backgroundColor: ['#52c41a', '#ff4d4f']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
     }
 </script>
 
