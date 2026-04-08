@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Pedidos - CIMSA</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        h2 { color: #001529; text-align: center; margin-bottom: 25px; }
+        .search-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; }
+        input:focus { border-color: #1890ff; }
+        button { padding: 12px 20px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #40a9ff; }
+        
+        #resultado { display: none; margin-top: 25px; border-top: 2px solid #eee; padding-top: 20px; }
+        .info-box { margin-bottom: 15px; }
+        .label { font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: bold; }
+        .valor { font-size: 1.1rem; color: #333; margin-top: 2px; }
+        
+        .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; margin-top: 10px; }
+        #error-msg { color: #ff4d4f; text-align: center; display: none; margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔎 Rastreo de Pedido</h2>
+    <div class="search-group">
+        <input type="text" id="inputPedido" placeholder="Ingrese el número de pedido...">
+        <button onclick="buscar()">Buscar</button>
+    </div>
+
+    <div id="resultado">
+        <div class="info-box">
+            <div class="label">Fecha de Despacho:</div>
+            <div id="resFecha" class="valor"></div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Transporte / Piloto:</div>
+            <div id="resPiloto" class="valor"></div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Equipo (EQ):</div>
+            <div id="resEq" class="valor"></div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Código Facility:</div>
+            <div id="resFacility" class="valor"></div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Consolidado:</div>
+            <div id="resConsolidado" class="valor"></div>
+        </div>
+
+        <div class="status-badge">✅ Pedido Despachado</div>
+    </div>
+
+    <div id="error-msg">❌ No se encontró el pedido. Verifique el número.</div>
+</div>
+
+<script>
+    // Tu link de Google Sheets (usamos el mismo que ya tienes funcionando)
+    const public_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_PQvvyHOsvSE4b0X8oBKUPEbe4gva0hOPJND2FNrIZs16V1_7I4jR1PaPCAYumOFzMaPRc4ebpJeG/pub?output=csv' + '&cache=' + new Date().getTime();
+    
+    let baseDatos = [];
+
+    // Cargar datos al entrar
+    Papa.parse(public_url, {
+        download: true,
+        header: false,
+        complete: function(results) {
+            baseDatos = results.data;
+        }
+    });
+
+    function buscar() {
+        const busqueda = document.getElementById('inputPedido').value.trim();
+        const resDiv = document.getElementById('resultado');
+        const errDiv = document.getElementById('error-msg');
+
+        if (busqueda === "") return;
+
+        // Buscamos el pedido en la Columna G (Índice 6)
+        const encontrado = baseDatos.find(fila => fila[6] && fila[6].toString().includes(busqueda));
+
+        if (encontrado) {
+            errDiv.style.display = 'none';
+            resDiv.style.display = 'block';
+
+            document.getElementById('resFecha').innerText = encontrado[0] || '---';      // Col A
+            document.getElementById('resPiloto').innerText = (encontrado[1] || '') + " | " + (encontrado[2] || ''); // Col B y C
+            document.getElementById('resEq').innerText = encontrado[3] || '---';        // Col D
+            document.getElementById('resFacility').innerText = encontrado[4] || '---';  // Col E
+            document.getElementById('resConsolidado').innerText = encontrado[5] || '---'; // Col F
+            
+        } else {
+            resDiv.style.display = 'none';
+            errDiv.style.display = 'block';
+        }
+    }
+</script>
+
+</body>
+</html>
