@@ -30,7 +30,7 @@
 <div class="container">
     <h2>🔎 Rastreador de Pedidos</h2>
     <div class="search-group">
-        <input type="text" id="inputPedido" placeholder="Ingrese el número de pedido (Col. F)...">
+        <input type="text" id="inputPedido" placeholder="Ingrese el número de pedido...">
         <button onclick="buscar()">Buscar</button>
     </div>
 
@@ -38,12 +38,12 @@
         <div class="status-badge">📦 INFORMACIÓN DE DESPACHO</div>
 
         <div class="info-box">
-            <div class="label">No. de Embarque (Col. A):</div>
+            <div class="label">No. de Embarque:</div>
             <div id="resEmbarque" class="valor"></div>
         </div>
 
         <div class="info-box">
-            <div class="label">Factura (Col. I):</div>
+            <div class="label">Factura Relacionada:</div>
             <div id="resFactura" class="valor"></div>
         </div>
 
@@ -53,22 +53,21 @@
         </div>
 
         <div class="info-box">
-            <div class="label">Dirección Exacta:</div>
+            <div class="label">Dirección de Entrega:</div>
             <div id="resDireccion" class="valor"></div>
         </div>
 
         <div id="boxObservacion" class="observacion-box">
-            <div class="label" style="color: #856404;">Observaciones (Col. Y):</div>
+            <div class="label" style="color: #856404;">Observaciones de Entrega:</div>
             <div id="resObs" class="valor"></div>
         </div>
     </div>
 
-    <div id="error-msg">❌ No se encontró el pedido. Verifique el número en la columna F.</div>
+    <div id="error-msg">❌ No se encontró el pedido. Por favor, verifique el número e intente de nuevo.</div>
 </div>
 
 <script>
-    // Tu link de Google Sheets
-    const public_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEHgrrm_5yYHs_Pnf_Nd4EOkMM6AvxWbiMyhnL8391HXgTz7rK8aYWUEkiLqVZkQzzJtOpKld1J0hG/pub?output=csv' + '&cache=' + new Date().getTime();
+    const public_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEHgrrm_5yYHs_Pnf_Nd4EOkMM6AvxWbiMyhnL8391HXgTz7rK8aYWUEkiLqVZkQzzJtOpKld1J0hG/pubhtml' + '&cache=' + new Date().getTime();
     
     let baseDatos = [];
 
@@ -87,19 +86,18 @@
 
         if (busqueda === "") return;
 
-        // Buscamos el pedido en la Columna F (Índice 5)
         const encontrado = baseDatos.find(fila => fila[5] && fila[5].toString().trim() === busqueda);
 
         if (encontrado) {
             errDiv.style.display = 'none';
             resDiv.style.display = 'block';
 
-            document.getElementById('resEmbarque').innerText = encontrado[0] || '---';      // Col A (0)
-            document.getElementById('resFactura').innerText = encontrado[8] || '---';       // Col I (8)
-            document.getElementById('resCliente').innerText = (encontrado[11] || '') + " - " + (encontrado[12] || ''); // Col L (11) y M (12)
-            document.getElementById('resDireccion').innerText = encontrado[13] || '---';    // Col N (13)
+            document.getElementById('resEmbarque').innerText = encontrado[0] || '---';
+            document.getElementById('resFactura').innerText = encontrado[8] || '---';
+            document.getElementById('resCliente').innerText = (encontrado[11] || '') + " - " + (encontrado[12] || '');
+            document.getElementById('resDireccion').innerText = encontrado[13] || '---';
             
-            const obs = encontrado[24] || 'Sin observaciones'; // Col Y (24)
+            const obs = encontrado[24] || 'Sin observaciones adicionales';
             document.getElementById('resObs').innerText = obs;
             
         } else {
