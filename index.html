@@ -3,97 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rastreo y Gestión CIMSA</title>
+    <title>Gestión de Entregas C&C</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin: auto; }
-        .nav-tabs { display: flex; justify-content: center; margin-bottom: 20px; gap: 10px; }
-        .tab-btn { padding: 10px 20px; cursor: pointer; border: none; border-radius: 8px; background: #ddd; font-weight: bold; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 10px; color: #333; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); width: 100%; max-width: 600px; margin: auto; margin-bottom: 20px; }
+        .nav-tabs { display: flex; justify-content: center; margin-bottom: 15px; gap: 8px; }
+        .tab-btn { padding: 10px 15px; cursor: pointer; border: none; border-radius: 8px; background: #ddd; font-weight: bold; font-size: 0.9rem; }
         .tab-btn.active { background: #1890ff; color: white; }
         
         .section { display: none; }
         .section.active { display: block; }
 
-        h2 { color: #001529; text-align: center; margin-bottom: 25px; font-size: 1.4rem; }
-        .search-group, .login-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
-        input { padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; }
-        button { padding: 12px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        h2 { color: #001529; text-align: center; margin-bottom: 15px; font-size: 1.2rem; }
+        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; }
+        button { width: 100%; padding: 12px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         
-        #resultado { border-top: 2px solid #eee; padding-top: 20px; }
-        .info-box { margin-bottom: 15px; }
-        .label { font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: bold; }
-        .valor { font-size: 1.05rem; color: #333; margin-top: 2px; }
-        .observacion-box { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 6px; }
+        /* Dashboard */
+        .month-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .month-title { font-size: 1.1rem; font-weight: bold; color: #1890ff; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; text-transform: capitalize; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; }
+        .chart-container { height: 120px; position: relative; }
+        .info-text p { margin: 5px 0; font-size: 0.9rem; }
         
-        /* Dashboard Styles */
-        .stats-card { text-align: center; padding: 20px; background: #f9f9f9; border-radius: 10px; margin-top: 10px; }
-        .percent { font-size: 2.5rem; font-weight: bold; color: #52c41a; }
+        .btn-detalle { background: #f0f2f5; color: #1890ff; border: 1px solid #1890ff; padding: 5px; margin-top: 10px; font-size: 0.8rem; }
+        
+        /* Modal de Detalle */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); overflow-y: auto; }
+        .modal-content { background: white; margin: 10% auto; padding: 20px; width: 90%; max-width: 500px; border-radius: 10px; }
+        .table-detalle { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
+        .table-detalle th, .table-detalle td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .table-detalle th { background: #f5f5f5; }
+        .pend { color: #ff4d4f; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="nav-tabs">
     <button class="tab-btn active" onclick="showSection('rastreo')">🔎 Rastreo</button>
-    <button class="tab-btn" onclick="showSection('admin')">📊 Dashboard C&C</button>
+    <button class="tab-btn" onclick="showSection('admin')">📊 Dashboard Mensual</button>
 </div>
 
 <div id="rastreo" class="section active">
     <div class="container">
         <h2>Rastreador de Pedidos</h2>
-        <div class="search-group">
-            <input type="text" id="inputPedido" placeholder="Ingrese número de pedido...">
-            <button onclick="buscar()">Buscar Pedido</button>
+        <input type="text" id="inputPedido" placeholder="Ingrese número de pedido...">
+        <button onclick="buscar()">Buscar Pedido</button>
+        <div id="resultado" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+            <p><strong>Embarque:</strong> <span id="resEmbarque"></span></p>
+            <p><strong>Factura:</strong> <span id="resFactura"></span></p>
+            <p><strong>Cliente:</strong> <span id="resCliente"></span></p>
+            <p><strong>Observaciones:</strong> <span id="resObs"></span></p>
         </div>
-        <div id="resultado" style="display:none;">
-            <div class="info-box"><div class="label">No. de Embarque:</div><div id="resEmbarque" class="valor"></div></div>
-            <div class="info-box"><div class="label">Factura:</div><div id="resFactura" class="valor"></div></div>
-            <div class="info-box"><div class="label">Cliente:</div><div id="resCliente" class="valor"></div></div>
-            <div class="info-box"><div class="label">Dirección:</div><div id="resDireccion" class="valor"></div></div>
-            <div id="boxObs" class="observacion-box"><div class="label">Observaciones:</div><div id="resObs" class="valor"></div></div>
-        </div>
-        <div id="error-msg" style="color:red; display:none; text-align:center; margin-top:10px;">❌ Pedido no encontrado.</div>
+        <div id="error-msg" style="color:red; display:none; text-align:center; margin-top:10px;">❌ No encontrado.</div>
     </div>
 </div>
 
 <div id="admin" class="section">
     <div class="container" id="login-container">
-        <h2>Acceso Administrativo</h2>
-        <div class="login-group">
-            <input type="text" id="usuario" placeholder="Usuario">
-            <input type="password" id="pass" placeholder="Contraseña">
-            <button onclick="login()">Ingresar al Dashboard</button>
-        </div>
-        <div id="login-err" style="color:red; display:none; text-align:center;">Usuario o contraseña incorrectos.</div>
+        <h2>Acceso C&C</h2>
+        <input type="text" id="usuario" placeholder="Usuario">
+        <input type="password" id="pass" placeholder="Contraseña">
+        <button onclick="login()">Ingresar</button>
+        <p id="login-err" style="color:red; display:none; text-align:center;">Error de acceso.</p>
     </div>
 
-    <div class="container" id="dashboard-container" style="display:none;">
-        <h2>Porcentajes de Entrega C&C</h2>
-        <div class="stats-card">
-            <div class="label">Efectividad de Entrega</div>
-            <div id="porcentajeCnc" class="percent">0%</div>
-            <canvas id="chartCnc" width="200" height="200"></canvas>
-            <div style="text-align: left; margin-top: 15px;">
-                <p>✅ <strong>Entregados:</strong> <span id="countEntregados">0</span></p>
-                <p>⏳ <strong>Pendientes:</strong> <span id="countPendientes">0</span></p>
-                <p>📦 <strong>Total Pedidos:</strong> <span id="countTotal">0</span></p>
-            </div>
-        </div>
-        <button onclick="logout()" style="width:100%; margin-top:15px; background:#ff4d4f;">Cerrar Sesión</button>
+    <div id="dashboard-container" style="display:none; padding: 0 5px;">
+        <h2>Reporte de Entregas por Mes</h2>
+        <div id="listaMeses"></div>
+        <button onclick="logout()" style="background:#ff4d4f; margin-top:10px;">Cerrar Sesión</button>
+    </div>
+</div>
+
+<div id="modalDetalle" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitulo">Detalle de Pendientes</h3>
+        <table class="table-detalle">
+            <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Pedido</th>
+                    <th>Cliente</th>
+                </tr>
+            </thead>
+            <tbody id="bodyDetalle"></tbody>
+        </table>
+        <button onclick="cerrarModal()" style="margin-top:15px; background:#888;">Cerrar</button>
     </div>
 </div>
 
 <script>
     const public_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEHgrrm_5yYHs_Pnf_Nd4EOkMM6AvxWbiMyhnL8391HXgTz7rK8aYWUEkiLqVZkQzzJtOpKld1J0hG/pub?output=csv' + '&cache=' + new Date().getTime();
     let baseDatos = [];
-    let myChart = null;
+    const mesesNombre = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
     Papa.parse(public_url, {
         download: true,
         header: false,
         complete: function(results) {
-            baseDatos = results.data.filter(fila => fila[5]); // Filtra filas con Pedido (Col F)
+            baseDatos = results.data.filter(f => f[5]); // Col F (Pedido)
         }
     });
 
@@ -104,80 +113,102 @@
         event.currentTarget.classList.add('active');
     }
 
-    function buscar() {
-        const busqueda = document.getElementById('inputPedido').value.trim();
-        const encontrado = baseDatos.find(fila => fila[5] == busqueda);
-        if (encontrado) {
-            document.getElementById('error-msg').style.display = 'none';
-            document.getElementById('resultado').style.display = 'block';
-            document.getElementById('resEmbarque').innerText = encontrado[0];
-            document.getElementById('resFactura').innerText = encontrado[8];
-            document.getElementById('resCliente').innerText = encontrado[11] + " - " + encontrado[12];
-            document.getElementById('resDireccion').innerText = encontrado[13];
-            document.getElementById('resObs').innerText = encontrado[24] || 'Sin observación';
-        } else {
-            document.getElementById('resultado').style.display = 'none';
-            document.getElementById('error-msg').style.display = 'block';
-        }
-    }
-
     function login() {
-        const u = document.getElementById('usuario').value;
-        const p = document.getElementById('pass').value;
-        if(u === "admin" && p === "cimsa2026") {
+        if(document.getElementById('usuario').value === "admin" && document.getElementById('pass').value === "cimsa2026") {
             document.getElementById('login-container').style.display = 'none';
             document.getElementById('dashboard-container').style.display = 'block';
-            calcularStats();
-        } else {
-            document.getElementById('login-err').style.display = 'block';
-        }
+            generarDashboardPorMes();
+        } else { document.getElementById('login-err').style.display = 'block'; }
     }
 
     function logout() {
         document.getElementById('login-container').style.display = 'block';
         document.getElementById('dashboard-container').style.display = 'none';
-        document.getElementById('usuario').value = "";
-        document.getElementById('pass').value = "";
     }
 
-    function calcularStats() {
-        // Ignorar encabezados si los hay (asumimos que la fila 0 es encabezado)
-        const filasData = baseDatos.slice(1);
-        let entregados = 0;
-        let pendientes = 0;
+    function generarDashboardPorMes() {
+        const lista = document.getElementById('listaMeses');
+        lista.innerHTML = "";
+        const datosPorMes = {};
 
-        filasData.forEach(fila => {
-            if (fila[24] && fila[24].trim() !== "") {
-                entregados++;
+        baseDatos.slice(1).forEach(fila => {
+            const fechaStr = fila[1]; // Columna B
+            if(!fechaStr) return;
+            
+            const partes = fechaStr.split('/');
+            const mesIdx = parseInt(partes[1]) - 1;
+            const mesNombre = mesesNombre[mesIdx] || "Otro";
+
+            if(!datosPorMes[mesNombre]) datosPorMes[mesNombre] = { ent: 0, pend: 0, items: [] };
+
+            const entregado = fila[24] && fila[24].trim() !== "";
+            if(entregado) {
+                datosPorMes[mesNombre].ent++;
             } else {
-                pendientes++;
+                datosPorMes[mesNombre].pend++;
+                datosPorMes[mesNombre].items.push({ fac: fila[8], ped: fila[5], cli: fila[12] });
             }
         });
 
-        const total = entregados + pendientes;
-        const porc = total > 0 ? ((entregados / total) * 100).toFixed(1) : 0;
+        Object.keys(datosPorMes).forEach(mes => {
+            const d = datosPorMes[mes];
+            const total = d.ent + d.pend;
+            const porc = ((d.ent / total) * 100).toFixed(1);
 
-        document.getElementById('porcentajeCnc').innerText = porc + "%";
-        document.getElementById('countEntregados').innerText = entregados;
-        document.getElementById('countPendientes').innerText = pendientes;
-        document.getElementById('countTotal').innerText = total;
-
-        // Gráfico
-        const ctx = document.getElementById('chartCnc').getContext('2d');
-        if (myChart) myChart.destroy();
-        myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Entregados', 'Pendientes'],
-                datasets: [{
-                    data: [entregados, pendientes],
-                    backgroundColor: ['#52c41a', '#ff4d4f']
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
+            const card = document.createElement('div');
+            card.className = "month-card";
+            card.innerHTML = `
+                <div class="month-title">${mes}</div>
+                <div class="stats-grid">
+                    <div class="chart-container"><canvas id="chart-${mes}"></canvas></div>
+                    <div class="info-text">
+                        <p><strong>${porc}%</strong> Logrado</p>
+                        <p>✅ Entregados: ${d.ent}</p>
+                        <p class="pend">⏳ Pendientes: ${d.pend}</p>
+                        <button class="btn-detalle" onclick='verDetalle("${mes}", ${JSON.stringify(d.items)})'>Ver Detalle</button>
+                    </div>
+                </div>
+            `;
+            lista.appendChild(card);
+            crearPie(mes, d.ent, d.pend);
         });
     }
-</script>
 
+    function crearPie(mes, e, p) {
+        setTimeout(() => {
+            const ctx = document.getElementById(`chart-${mes}`).getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: { datasets: [{ data: [e, p], backgroundColor: ['#52c41a', '#ff4d4f'] }] },
+                options: { cutout: '70%', responsive: true, maintainAspectRatio: false }
+            });
+        }, 100);
+    }
+
+    function verDetalle(mes, items) {
+        document.getElementById('modalTitulo').innerText = "Pendientes de " + mes;
+        const body = document.getElementById('bodyDetalle');
+        body.innerHTML = items.map(i => `<tr><td>${i.fac}</td><td>${i.ped}</td><td>${i.cli}</td></tr>`).join('');
+        document.getElementById('modalDetalle').style.display = 'block';
+    }
+
+    function cerrarModal() { document.getElementById('modalDetalle').style.display = 'none'; }
+
+    function buscar() {
+        const b = document.getElementById('inputPedido').value.trim();
+        const f = baseDatos.find(r => r[5] == b);
+        if(f) {
+            document.getElementById('error-msg').style.display='none';
+            document.getElementById('resultado').style.display='block';
+            document.getElementById('resEmbarque').innerText = f[0];
+            document.getElementById('resFactura').innerText = f[8];
+            document.getElementById('resCliente').innerText = f[11] + " " + f[12];
+            document.getElementById('resObs').innerText = f[24] || 'Sin observación';
+        } else {
+            document.getElementById('resultado').style.display='none';
+            document.getElementById('error-msg').style.display='block';
+        }
+    }
+</script>
 </body>
 </html>
