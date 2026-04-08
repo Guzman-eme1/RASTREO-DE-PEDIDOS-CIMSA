@@ -3,75 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Pedidos - CIMSA</title>
+    <title>Rastreo de Pedidos CIMSA</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
-        h2 { color: #001529; text-align: center; margin-bottom: 25px; }
-        .search-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h2 { color: #001529; text-align: center; margin-bottom: 25px; font-size: 1.4rem; }
+        .search-group { display: flex; gap: 10px; margin-bottom: 25px; }
         input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; outline: none; font-size: 1rem; }
         input:focus { border-color: #1890ff; }
         button { padding: 12px 20px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         button:hover { background: #40a9ff; }
         
-        #resultado { display: none; margin-top: 25px; border-top: 2px solid #eee; padding-top: 20px; }
-        .info-box { margin-bottom: 15px; }
+        #resultado { display: none; margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; }
+        .info-box { margin-bottom: 15px; display: flex; flex-direction: column; }
         .label { font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: bold; }
-        .valor { font-size: 1.1rem; color: #333; margin-top: 2px; }
+        .valor { font-size: 1.05rem; color: #333; margin-top: 2px; line-height: 1.4; }
         
-        .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; margin-top: 10px; }
+        .observacion-box { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 6px; margin-top: 10px; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; background: #52c41a; color: white; margin-bottom: 15px; font-size: 0.8rem; }
         #error-msg { color: #ff4d4f; text-align: center; display: none; margin-top: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🔎 Rastreo de Pedido</h2>
+    <h2>🔎 Rastreador de Pedidos</h2>
     <div class="search-group">
-        <input type="text" id="inputPedido" placeholder="Ingrese el número de pedido...">
+        <input type="text" id="inputPedido" placeholder="Ingrese el número de pedido (Col. F)...">
         <button onclick="buscar()">Buscar</button>
     </div>
 
     <div id="resultado">
+        <div class="status-badge">📦 INFORMACIÓN DE DESPACHO</div>
+
         <div class="info-box">
-            <div class="label">Fecha de Despacho:</div>
-            <div id="resFecha" class="valor"></div>
+            <div class="label">No. de Embarque (Col. A):</div>
+            <div id="resEmbarque" class="valor"></div>
         </div>
 
         <div class="info-box">
-            <div class="label">Transporte / Piloto:</div>
-            <div id="resPiloto" class="valor"></div>
+            <div class="label">Factura (Col. I):</div>
+            <div id="resFactura" class="valor"></div>
         </div>
 
         <div class="info-box">
-            <div class="label">Equipo (EQ):</div>
-            <div id="resEq" class="valor"></div>
+            <div class="label">Cliente:</div>
+            <div id="resCliente" class="valor"></div>
         </div>
 
         <div class="info-box">
-            <div class="label">Código Facility:</div>
-            <div id="resFacility" class="valor"></div>
+            <div class="label">Dirección Exacta:</div>
+            <div id="resDireccion" class="valor"></div>
         </div>
 
-        <div class="info-box">
-            <div class="label">Consolidado:</div>
-            <div id="resConsolidado" class="valor"></div>
+        <div id="boxObservacion" class="observacion-box">
+            <div class="label" style="color: #856404;">Observaciones (Col. Y):</div>
+            <div id="resObs" class="valor"></div>
         </div>
-
-        <div class="status-badge">✅ Pedido Despachado</div>
     </div>
 
-    <div id="error-msg">❌ No se encontró el pedido. Verifique el número.</div>
+    <div id="error-msg">❌ No se encontró el pedido. Verifique el número en la columna F.</div>
 </div>
 
 <script>
-    // Tu link de Google Sheets (usamos el mismo que ya tienes funcionando)
+    // Tu link de Google Sheets
     const public_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_PQvvyHOsvSE4b0X8oBKUPEbe4gva0hOPJND2FNrIZs16V1_7I4jR1PaPCAYumOFzMaPRc4ebpJeG/pub?output=csv' + '&cache=' + new Date().getTime();
     
     let baseDatos = [];
 
-    // Cargar datos al entrar
     Papa.parse(public_url, {
         download: true,
         header: false,
@@ -87,18 +87,20 @@
 
         if (busqueda === "") return;
 
-        // Buscamos el pedido en la Columna G (Índice 6)
-        const encontrado = baseDatos.find(fila => fila[6] && fila[6].toString().includes(busqueda));
+        // Buscamos el pedido en la Columna F (Índice 5)
+        const encontrado = baseDatos.find(fila => fila[5] && fila[5].toString().trim() === busqueda);
 
         if (encontrado) {
             errDiv.style.display = 'none';
             resDiv.style.display = 'block';
 
-            document.getElementById('resFecha').innerText = encontrado[0] || '---';      // Col A
-            document.getElementById('resPiloto').innerText = (encontrado[1] || '') + " | " + (encontrado[2] || ''); // Col B y C
-            document.getElementById('resEq').innerText = encontrado[3] || '---';        // Col D
-            document.getElementById('resFacility').innerText = encontrado[4] || '---';  // Col E
-            document.getElementById('resConsolidado').innerText = encontrado[5] || '---'; // Col F
+            document.getElementById('resEmbarque').innerText = encontrado[0] || '---';      // Col A (0)
+            document.getElementById('resFactura').innerText = encontrado[8] || '---';       // Col I (8)
+            document.getElementById('resCliente').innerText = (encontrado[11] || '') + " - " + (encontrado[12] || ''); // Col L (11) y M (12)
+            document.getElementById('resDireccion').innerText = encontrado[13] || '---';    // Col N (13)
+            
+            const obs = encontrado[24] || 'Sin observaciones'; // Col Y (24)
+            document.getElementById('resObs').innerText = obs;
             
         } else {
             resDiv.style.display = 'none';
