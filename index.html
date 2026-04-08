@@ -3,93 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Entregas C&C</title>
+    <title>Gestión de Pedidos CIMSA</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 10px; color: #333; }
-        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); width: 100%; max-width: 600px; margin: auto; margin-bottom: 20px; }
-        .nav-tabs { display: flex; justify-content: center; margin-bottom: 15px; gap: 8px; }
-        .tab-btn { padding: 10px 15px; cursor: pointer; border: none; border-radius: 8px; background: #ddd; font-weight: bold; font-size: 0.9rem; }
-        .tab-btn.active { background: #1890ff; color: white; }
+        :root {
+            --primary: #1890ff;
+            --success: #52c41a;
+            --bg: #f0f2f5;
+            --text: #262626;
+        }
+
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
         
-        .section { display: none; }
+        .container { 
+            background: white; padding: 25px; border-radius: 16px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            width: 100%; max-width: 550px; margin: auto; margin-bottom: 20px; 
+        }
+
+        .nav-tabs { display: flex; justify-content: center; margin-bottom: 20px; gap: 10px; }
+        .tab-btn { 
+            padding: 12px 20px; cursor: pointer; border: none; border-radius: 10px; 
+            background: #e8e8e8; font-weight: 600; transition: 0.3s;
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        .section { display: none; transition: 0.3s; }
         .section.active { display: block; }
 
-        h2 { color: #001529; text-align: center; margin-bottom: 15px; font-size: 1.2rem; }
-        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; }
-        button { width: 100%; padding: 12px; background: #1890ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        h2 { text-align: center; margin-top: 0; color: #001529; font-size: 1.5rem; }
+
+        /* Estilo del Buscador */
+        .search-box { position: relative; margin-bottom: 20px; }
+        input { 
+            width: 100%; padding: 14px; border: 2px solid #d9d9d9; 
+            border-radius: 12px; font-size: 1rem; box-sizing: border-box; outline: none;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
         
-        /* Dashboard */
-        .month-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .month-title { font-size: 1.1rem; font-weight: bold; color: #1890ff; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; text-transform: capitalize; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; }
-        .chart-container { height: 120px; position: relative; }
-        .info-text p { margin: 5px 0; font-size: 0.9rem; }
+        button.btn-main { 
+            width: 100%; padding: 14px; background: var(--primary); color: white; 
+            border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(24,144,255,0.3); transition: 0.3s;
+        }
+        button.btn-main:hover { background: #40a9ff; transform: translateY(-1px); }
+
+        /* Tarjeta de Información Presentable */
+        #resultado { display: none; margin-top: 25px; animation: slideUp 0.4s ease; }
+        .info-card { 
+            background: #ffffff; border: 1px solid #f0f0f0; border-radius: 15px; 
+            padding: 20px; position: relative; overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+        .info-card::before { content: ""; position: absolute; left: 0; top: 0; height: 100%; width: 5px; background: var(--primary); }
         
-        .btn-detalle { background: #f0f2f5; color: #1890ff; border: 1px solid #1890ff; padding: 5px; margin-top: 10px; font-size: 0.8rem; }
+        .info-row { margin-bottom: 15px; border-bottom: 1px padding-bottom: 10px; }
+        .info-row:last-child { margin-bottom: 0; border: none; }
         
-        /* Modal de Detalle */
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); overflow-y: auto; }
-        .modal-content { background: white; margin: 10% auto; padding: 20px; width: 90%; max-width: 500px; border-radius: 10px; }
-        .table-detalle { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
-        .table-detalle th, .table-detalle td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .table-detalle th { background: #f5f5f5; }
-        .pend { color: #ff4d4f; font-weight: bold; }
+        .info-label { font-size: 0.75rem; color: #8c8c8c; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-value { font-size: 1rem; color: #262626; margin-top: 4px; font-weight: 500; }
+        
+        .obs-tag { background: #fffbe6; border: 1px solid #ffe58f; padding: 12px; border-radius: 8px; margin-top: 10px; }
+
+        /* Dashboard de Meses */
+        .month-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #f0f0f0; }
+        .stats-grid { display: grid; grid-template-columns: 120px 1fr; gap: 20px; align-items: center; }
+        .chart-container { height: 120px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .modal-content { background: white; margin: 10% auto; padding: 25px; width: 90%; max-width: 500px; border-radius: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+        th, td { padding: 12px; border-bottom: 1px solid #f0f0f0; text-align: left; }
+        th { background: #fafafa; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div class="nav-tabs">
     <button class="tab-btn active" onclick="showSection('rastreo')">🔎 Rastreo</button>
-    <button class="tab-btn" onclick="showSection('admin')">📊 Dashboard Mensual</button>
+    <button class="tab-btn" onclick="showSection('admin')">📊 Dashboard</button>
 </div>
 
 <div id="rastreo" class="section active">
     <div class="container">
         <h2>Rastreador de Pedidos</h2>
-        <input type="text" id="inputPedido" placeholder="Ingrese número de pedido...">
-        <button onclick="buscar()">Buscar Pedido</button>
-        <div id="resultado" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
-            <p><strong>Embarque:</strong> <span id="resEmbarque"></span></p>
-            <p><strong>Factura:</strong> <span id="resFactura"></span></p>
-            <p><strong>Cliente:</strong> <span id="resCliente"></span></p>
-            <p><strong>Observaciones:</strong> <span id="resObs"></span></p>
+        <div class="search-box">
+            <input type="text" id="inputPedido" placeholder="Ej: 1723307">
         </div>
-        <div id="error-msg" style="color:red; display:none; text-align:center; margin-top:10px;">❌ No encontrado.</div>
+        <button class="btn-main" onclick="buscar()">Buscar Pedido</button>
+
+        <div id="resultado">
+            <div class="info-card">
+                <div class="info-row">
+                    <div class="info-label">📍 Número de Embarque</div>
+                    <div id="resEmbarque" class="info-value"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">📑 Factura Relacionada</div>
+                    <div id="resFactura" class="info-value"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">👤 Cliente</div>
+                    <div id="resCliente" class="info-value"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">🏠 Dirección de Entrega</div>
+                    <div id="resDireccion" class="info-value"></div>
+                </div>
+                <div id="boxObs" class="obs-tag">
+                    <div class="info-label" style="color: #856404;">📝 Observaciones</div>
+                    <div id="resObs" class="info-value"></div>
+                </div>
+            </div>
+        </div>
+        <div id="error-msg" style="color:#ff4d4f; display:none; text-align:center; margin-top:20px; font-weight:bold;">❌ Pedido no encontrado en el sistema</div>
     </div>
 </div>
 
 <div id="admin" class="section">
     <div class="container" id="login-container">
-        <h2>Acceso C&C</h2>
+        <h2>Acceso Administrativo</h2>
         <input type="text" id="usuario" placeholder="Usuario">
         <input type="password" id="pass" placeholder="Contraseña">
-        <button onclick="login()">Ingresar</button>
-        <p id="login-err" style="color:red; display:none; text-align:center;">Error de acceso.</p>
+        <button class="btn-main" onclick="login()">Ingresar al Dashboard</button>
+        <p id="login-err" style="color:red; display:none; text-align:center;">Acceso denegado.</p>
     </div>
 
-    <div id="dashboard-container" style="display:none; padding: 0 5px;">
-        <h2>Reporte de Entregas por Mes</h2>
+    <div id="dashboard-container" style="display:none;">
+        <h2 style="margin-bottom: 20px;">Efectividad de Entrega</h2>
         <div id="listaMeses"></div>
-        <button onclick="logout()" style="background:#ff4d4f; margin-top:10px;">Cerrar Sesión</button>
+        <button onclick="logout()" style="background:#ff4d4f; width:100%; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:bold;">Cerrar Sesión</button>
     </div>
 </div>
 
 <div id="modalDetalle" class="modal">
     <div class="modal-content">
-        <h3 id="modalTitulo">Detalle de Pendientes</h3>
-        <table class="table-detalle">
-            <thead>
-                <tr>
-                    <th>Factura</th>
-                    <th>Pedido</th>
-                    <th>Cliente</th>
-                </tr>
-            </thead>
-            <tbody id="bodyDetalle"></tbody>
-        </table>
-        <button onclick="cerrarModal()" style="margin-top:15px; background:#888;">Cerrar</button>
+        <h3 id="modalTitulo" style="margin-top:0;">Detalle</h3>
+        <div style="max-height: 300px; overflow-y: auto;">
+            <table>
+                <thead><tr><th>Factura</th><th>Pedido</th><th>Cliente</th></tr></thead>
+                <tbody id="bodyDetalle"></tbody>
+            </table>
+        </div>
+        <button onclick="cerrarModal()" style="margin-top:20px; background:#8c8c8c; width:100%; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer;">Cerrar Detalle</button>
     </div>
 </div>
 
@@ -97,6 +158,7 @@
     const public_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEHgrrm_5yYHs_Pnf_Nd4EOkMM6AvxWbiMyhnL8391HXgTz7rK8aYWUEkiLqVZkQzzJtOpKld1J0hG/pub?output=csv' + '&cache=' + new Date().getTime();
     let baseDatos = [];
     const mesesNombre = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    let myCharts = {};
 
     Papa.parse(public_url, {
         download: true,
@@ -113,11 +175,30 @@
         event.currentTarget.classList.add('active');
     }
 
+    function buscar() {
+        const busqueda = document.getElementById('inputPedido').value.trim();
+        const f = baseDatos.find(r => r[5] && r[5].toString().trim() === busqueda);
+        
+        if(f) {
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('resultado').style.display = 'block';
+            
+            document.getElementById('resEmbarque').innerText = f[0] || '---';
+            document.getElementById('resFactura').innerText = f[8] || '---';
+            document.getElementById('resCliente').innerText = (f[11] || '') + " - " + (f[12] || '');
+            document.getElementById('resDireccion').innerText = f[13] || 'No especificada';
+            document.getElementById('resObs').innerText = f[24] || 'Sin observaciones registradas';
+        } else {
+            document.getElementById('resultado').style.display = 'none';
+            document.getElementById('error-msg').style.display = 'block';
+        }
+    }
+
     function login() {
         if(document.getElementById('usuario').value === "admin" && document.getElementById('pass').value === "cimsa2026") {
             document.getElementById('login-container').style.display = 'none';
             document.getElementById('dashboard-container').style.display = 'block';
-            generarDashboardPorMes();
+            generarDashboard();
         } else { document.getElementById('login-err').style.display = 'block'; }
     }
 
@@ -126,23 +207,22 @@
         document.getElementById('dashboard-container').style.display = 'none';
     }
 
-    function generarDashboardPorMes() {
+    function generarDashboard() {
         const lista = document.getElementById('listaMeses');
         lista.innerHTML = "";
         const datosPorMes = {};
 
         baseDatos.slice(1).forEach(fila => {
-            const fechaStr = fila[1]; // Columna B
+            const fechaStr = fila[1]; // Col B
             if(!fechaStr) return;
-            
             const partes = fechaStr.split('/');
             const mesIdx = parseInt(partes[1]) - 1;
-            const mesNombre = mesesNombre[mesIdx] || "Otro";
+            const mesNombre = mesesNombre[mesIdx] || "Otros";
 
             if(!datosPorMes[mesNombre]) datosPorMes[mesNombre] = { ent: 0, pend: 0, items: [] };
 
-            const entregado = fila[24] && fila[24].trim() !== "";
-            if(entregado) {
+            const tieneObs = fila[24] && fila[24].trim() !== "";
+            if(tieneObs) {
                 datosPorMes[mesNombre].ent++;
             } else {
                 datosPorMes[mesNombre].pend++;
@@ -155,60 +235,51 @@
             const total = d.ent + d.pend;
             const porc = ((d.ent / total) * 100).toFixed(1);
 
-            const card = document.createElement('div');
-            card.className = "month-card";
-            card.innerHTML = `
-                <div class="month-title">${mes}</div>
+            const div = document.createElement('div');
+            div.className = "month-card";
+            div.innerHTML = `
+                <div style="font-weight:bold; color:var(--primary); margin-bottom:15px; text-transform:uppercase; font-size:0.9rem;">📅 ${mes}</div>
                 <div class="stats-grid">
                     <div class="chart-container"><canvas id="chart-${mes}"></canvas></div>
-                    <div class="info-text">
-                        <p><strong>${porc}%</strong> Logrado</p>
-                        <p>✅ Entregados: ${d.ent}</p>
-                        <p class="pend">⏳ Pendientes: ${d.pend}</p>
-                        <button class="btn-detalle" onclick='verDetalle("${mes}", ${JSON.stringify(d.items)})'>Ver Detalle</button>
+                    <div>
+                        <div style="font-size:1.5rem; font-weight:bold; color:var(--success);">${porc}%</div>
+                        <div style="font-size:0.85rem; color:#666;">Entregados: <b>${d.ent}</b></div>
+                        <div style="font-size:0.85rem; color:#666;">Pendientes: <b>${d.pend}</b></div>
+                        <button onclick='verDetalle("${mes}", ${JSON.stringify(d.items)})' style="margin-top:10px; padding:6px 12px; background:none; border:1px solid var(--primary); color:var(--primary); border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:bold;">Ver Pendientes</button>
                     </div>
                 </div>
             `;
-            lista.appendChild(card);
-            crearPie(mes, d.ent, d.pend);
+            lista.appendChild(div);
+            crearGrafico(mes, d.ent, d.pend);
         });
     }
 
-    function crearPie(mes, e, p) {
+    function crearGrafico(mes, e, p) {
         setTimeout(() => {
             const ctx = document.getElementById(`chart-${mes}`).getContext('2d');
             new Chart(ctx, {
                 type: 'doughnut',
-                data: { datasets: [{ data: [e, p], backgroundColor: ['#52c41a', '#ff4d4f'] }] },
-                options: { cutout: '70%', responsive: true, maintainAspectRatio: false }
+                data: {
+                    datasets: [{
+                        data: [e, p],
+                        backgroundColor: ['#52c41a', '#ff4d4f'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }, 100);
     }
 
     function verDetalle(mes, items) {
-        document.getElementById('modalTitulo').innerText = "Pendientes de " + mes;
+        document.getElementById('modalTitulo').innerText = "Pendientes en " + mes;
         const body = document.getElementById('bodyDetalle');
         body.innerHTML = items.map(i => `<tr><td>${i.fac}</td><td>${i.ped}</td><td>${i.cli}</td></tr>`).join('');
         document.getElementById('modalDetalle').style.display = 'block';
     }
 
     function cerrarModal() { document.getElementById('modalDetalle').style.display = 'none'; }
-
-    function buscar() {
-        const b = document.getElementById('inputPedido').value.trim();
-        const f = baseDatos.find(r => r[5] == b);
-        if(f) {
-            document.getElementById('error-msg').style.display='none';
-            document.getElementById('resultado').style.display='block';
-            document.getElementById('resEmbarque').innerText = f[0];
-            document.getElementById('resFactura').innerText = f[8];
-            document.getElementById('resCliente').innerText = f[11] + " " + f[12];
-            document.getElementById('resObs').innerText = f[24] || 'Sin observación';
-        } else {
-            document.getElementById('resultado').style.display='none';
-            document.getElementById('error-msg').style.display='block';
-        }
-    }
 </script>
+
 </body>
 </html>
